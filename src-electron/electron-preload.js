@@ -95,4 +95,12 @@ contextBridge.exposeInMainWorld("k8s", {
       )
     );
   },
+  downloadFilePod: (params) => {
+    ipcRenderer.send("k8s-download-file-pod", params);
+    return new Promise((resolve) =>
+      ipcRenderer.once("k8s-download-file-pod-success", (event, data) =>
+        resolve({ event, data })
+      )
+    );
+  },
 });

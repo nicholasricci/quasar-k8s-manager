@@ -154,3 +154,21 @@ ipcMain.on("k8s-list-pod", (event, data) => {
     }
   );
 });
+
+ipcMain.on("k8s-download-file-pod", (event, data) => {
+  console.log("main: received k8s-download-file-pod event.");
+
+  const { pod, path, filename } = data;
+  const cp = require("child_process");
+  cp.exec(
+    `oc cp ${pod}:${path}/${filename} ~/Downloads/`,
+    function (error, stdout, stderr) {
+      event.sender.send("k8s-download-file-pod-success", {
+        error,
+        stdout,
+        stderr,
+      });
+      console.log("main: sent k8s-download-file-pod-success event.");
+    }
+  );
+});

@@ -9,7 +9,13 @@
           @click="refreshFiles(b)"
         />
       </q-breadcrumbs>
-      <q-table fluid :columns="headers" :rows="files" row-key="name">
+      <q-table
+        fluid
+        row-key="name"
+        :columns="headers"
+        :rows="files"
+        :pagination="{ rowsPerPage: 50 }"
+      >
         <template v-slot:body="props">
           <q-tr :props="props">
             <q-td key="permissions" :props="props">
@@ -38,37 +44,48 @@
             </q-td>
             <q-td key="filename" :props="props">
               <q-btn
+                size="sm"
                 flat
                 text-color="primary"
                 :label="props.row.filename"
-                v-if="props.row.permissions[0] === 'd'"
                 @click="goInsideDir(props.row.filename)"
+                v-if="props.row.permissions[0] === 'd'"
               />
               <span v-else>{{ props.row.filename }}</span>
             </q-td>
             <q-td key="actions" :props="props">
-              <!-- <q-btn @click="goToListDirectory(props.row.name)" tag="a" link>
-                <q-icon name="folder" />
-              </q-btn> -->
+              <q-btn
+                size="sm"
+                flat
+                text-color="black"
+                @click="downloadFile(props.row.filename)"
+                v-if="props.row.permissions[0] === '-'"
+              >
+                <q-icon name="download" />
+              </q-btn>
             </q-td>
           </q-tr>
         </template>
       </q-table>
+
+      <q-inner-loading :showing="loading">
+        <q-spinner-gears size="50px" color="primary" />
+      </q-inner-loading>
     </div>
   </q-page>
 </template>
 
 <script>
 import { useAppStore } from "src/stores/app-store";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import { ref } from "vue";
-import path from "path";
+import { useQuasar } from "quasar";
 
 export default {
   name: "FileManagerListDirectoryPage",
   setup() {
+    const $q = useQuasar();
     const router = useRouter();
-    const route = useRoute();
     const appStore = useAppStore();
     const pod = appStore.pod;
 
@@ -146,6 +163,7 @@ export default {
     ];
     const files = ref([]);
     const breadcrumbs = ref([]);
+    const loading = ref(false);
 
     function goToContainer() {
       router.push({
@@ -168,8 +186,8 @@ export default {
     }
 
     async function getPodListings(path) {
+      loading.value = true;
       const res = await window.k8s.listPod({ pod: pod, path: path });
-      console.log(res.data);
       if (res.data.error === null) {
         const stdout = res.data.stdout;
         const lines = stdout.split("\n");
@@ -188,8 +206,10 @@ export default {
           });
           filesRet.push(file);
         });
+        filesRet.splice(-1, 1);
         files.value.splice(0, files.value.length, ...filesRet);
       }
+      loading.value = false;
     }
 
     async function refreshFiles(pathPiece) {
@@ -207,10 +227,27 @@ export default {
       getPodListings(this.path);
     }
 
+    async function downloadFile(filename) {
+      loading.value = true;
+      const res = await window.k8s.downloadFilePod({
+        pod,
+        path: appStore.podPath,
+        filename,
+      });
+      if (res.data.error === null) {
+        $q.notify({
+          message: `${filename} download in ~/Downloads folder`,
+          color: "primary",
+        });
+      }
+      loading.value = false;
+    }
+
     return {
       goToContainer,
       getPodPath,
       getPodListings,
+      downloadFile,
       refreshFiles,
       goInsideDir,
       appStore,
@@ -218,13 +255,13 @@ export default {
       headers,
       files,
       breadcrumbs,
+      loading,
     };
   },
   mounted() {
     this.getPodPath();
     this.getPodListings("");
   },
-  method: {},
 };
 </script>
 

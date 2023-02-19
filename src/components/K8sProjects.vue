@@ -26,19 +26,12 @@ export default defineComponent({
     const appStore = useAppStore();
     const namespacesOptions = ref([]);
     const namespaces = ref([]);
+    const namespaceSelected = ref("");
 
-    return { appStore, namespacesOptions, namespaces };
-  },
-  data() {
-    return {
-      namespaceSelected: "",
-      error: "",
-    };
-  },
-  mounted() {
-    window.k8s.projects().then(({ event, data }) => {
-      if (!data.stderr) {
-        const lines = data.stdout.split("\n");
+    async function getNamespaces() {
+      const res = await window.k8s.projects();
+      if (res.data.error === null) {
+        const lines = res.data.stdout.split("\n");
         lines.splice(0, 2);
         lines.splice(-2);
         const linesTrimmed = lines.map((l) => {
@@ -51,22 +44,38 @@ export default defineComponent({
           return trimmedLine;
         });
         linesTrimmed.splice(-1, 1);
-        this.namespaces = linesTrimmed;
-        this.namespacesOptions = linesTrimmed;
-      } else {
-        this.error = data.stderr;
+        namespaces.value.splice(0, namespaces.value.length, ...linesTrimmed);
+        namespacesOptions.value.splice(
+          0,
+          namespacesOptions.value.length,
+          ...linesTrimmed
+        );
       }
-    });
-  },
-  methods: {
-    async setNamespace() {
+    }
+
+    async function setNamespace() {
       const res = await window.k8s.setProject({
-        project: this.namespaceSelected,
+        project: namespaceSelected.value,
       });
       if (res.data.error !== null) {
-        this.appStore.setNamespace(this.namespaceSelected);
+        appStore.$patch({
+          namespace: namespaceSelected,
+        });
+        // appStore.namespace = namespaceSelected;
       }
-    },
+    }
+
+    return {
+      getNamespaces,
+      setNamespace,
+      appStore,
+      namespacesOptions,
+      namespaces,
+      namespaceSelected,
+    };
+  },
+  mounted() {
+    this.getNamespaces();
   },
 });
 </script>
