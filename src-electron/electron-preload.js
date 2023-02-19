@@ -103,4 +103,12 @@ contextBridge.exposeInMainWorld("k8s", {
       )
     );
   },
+  uploadFilePod: (params) => {
+    ipcRenderer.send("k8s-upload-file-pod", params);
+    return new Promise((resolve) =>
+      ipcRenderer.once("k8s-upload-file-pod-success", (event, data) =>
+        resolve({ event, data })
+      )
+    );
+  },
 });

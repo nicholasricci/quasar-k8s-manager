@@ -1,14 +1,28 @@
 <template>
   <q-page class="flex">
     <div class="q-pa-md" v-if="pod">
-      <q-breadcrumbs class="q-mb-md">
-        <q-breadcrumbs-el
-          v-for="(b, i) in breadcrumbs"
-          :label="b"
-          :key="i"
-          @click="refreshFiles(b)"
-        />
-      </q-breadcrumbs>
+      <div
+        class="row no-wrap items-center q-mt-md q-pa-sm bg-grey-3 rounded-borders"
+      >
+        <q-breadcrumbs class="q-mb-md">
+          <q-breadcrumbs-el
+            v-for="(b, i) in breadcrumbs"
+            :label="b"
+            :key="i"
+            @click="refreshFiles(b)"
+          />
+        </q-breadcrumbs>
+
+        <q-space />
+
+        <q-file outlined v-model="fileToUpload" class="q-mr-sm">
+          <template v-slot:prepend>
+            <q-icon name="attach_file" />
+          </template>
+        </q-file>
+        <q-btn @click="uploadFile()">Upload</q-btn>
+      </div>
+
       <q-table
         fluid
         row-key="name"
@@ -164,6 +178,7 @@ export default {
     const files = ref([]);
     const breadcrumbs = ref([]);
     const loading = ref(false);
+    const fileToUpload = ref(null);
 
     function goToContainer() {
       router.push({
@@ -243,11 +258,30 @@ export default {
       loading.value = false;
     }
 
+    async function uploadFile() {
+      loading.value = true;
+      const res = await window.k8s.uploadFilePod({
+        pod,
+        path: appStore.podPath,
+        pathFileToUpload: fileToUpload.value.path,
+        filenameToUpload: fileToUpload.value.name,
+      });
+      if (res.data.error === null) {
+        $q.notify({
+          message: `${fileToUpload.value.name} upload in ${pod}:${appStore.podPath} folder`,
+          color: "primary",
+        });
+      }
+      loading.value = false;
+      getPodListings(appStore.podPath);
+    }
+
     return {
       goToContainer,
       getPodPath,
       getPodListings,
       downloadFile,
+      uploadFile,
       refreshFiles,
       goInsideDir,
       appStore,
@@ -256,6 +290,7 @@ export default {
       files,
       breadcrumbs,
       loading,
+      fileToUpload,
     };
   },
   mounted() {
