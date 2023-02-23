@@ -20,7 +20,7 @@
             <q-icon name="attach_file" />
           </template>
         </q-file>
-        <q-btn @click="uploadFile()">Upload</q-btn>
+        <q-btn @click="uploadFile()" :disable="!fileToUpload">Upload</q-btn>
       </div>
 
       <q-table
