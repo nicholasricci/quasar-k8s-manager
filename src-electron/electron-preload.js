@@ -29,6 +29,7 @@
  */
 
 import { contextBridge, ipcRenderer } from "electron";
+import { Terminal } from "xterm";
 
 contextBridge.exposeInMainWorld("k8s", {
   server: () => {
@@ -109,6 +110,22 @@ contextBridge.exposeInMainWorld("k8s", {
       ipcRenderer.once("k8s-upload-file-pod-success", (event, data) =>
         resolve({ event, data })
       )
+    );
+  },
+  rshPod: (params) => {
+    ipcRenderer.send("k8s-rsh-pod", params);
+    return new Promise((resolve) =>
+      ipcRenderer.once("k8s-rsh-pod-success", (event, data) => {
+        resolve({ event, data });
+      })
+    );
+  },
+  closeSocket: (params) => {
+    ipcRenderer.send("k8s-close-socket", params);
+    return new Promise((resolve) =>
+      ipcRenderer.once("k8s-close-socket-success", (event, data) => {
+        resolve({ event, data });
+      })
     );
   },
 });

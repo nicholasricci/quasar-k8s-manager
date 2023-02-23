@@ -1,7 +1,7 @@
 import { app, BrowserWindow, nativeTheme, ipcMain } from "electron";
 import path from "path";
 import os from "os";
-import { stdout } from "process";
+import { WebSocket, WebSocketServer } from "ws";
 
 // needed in case process is undefined under Linux
 const platform = process.platform || os.platform();
@@ -15,6 +15,8 @@ try {
 } catch (_) {}
 
 let mainWindow;
+let wss;
+let ptyProcess;
 
 function createWindow() {
   /**
@@ -27,6 +29,7 @@ function createWindow() {
     useContentSize: true,
     webPreferences: {
       contextIsolation: true,
+      sandbox: false,
       // More info: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/electron-preload-script
       preload: path.resolve(__dirname, process.env.QUASAR_ELECTRON_PRELOAD),
     },
@@ -189,4 +192,52 @@ ipcMain.on("k8s-upload-file-pod", (event, data) => {
       console.log("main: sent k8s-upload-file-pod-success event.");
     }
   );
+});
+
+ipcMain.on("k8s-rsh-pod", (event, data) => {
+  console.log("main: received k8s-rsh-pod event.");
+
+  const { pod } = data;
+  const shell = os.platform() === "win32" ? "powershell.exe" : `bash`;
+  const pty = require("node-pty");
+
+  // Start PTY process
+  ptyProcess = pty.spawn(shell, ["-c", `oc rsh ${pod}`], {
+    name: "xterm-color",
+    cwd: process.env.HOME, // Which path should terminal start
+    env: process.env, // Pass environment variables
+  });
+
+  const port = 3323;
+  wss = new WebSocketServer({ port });
+  wss.on("connection", (ws) => {
+    ws.on("message", (data) => {
+      ptyProcess.write(data);
+    });
+
+    ptyProcess.onData(function (data) {
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN && client === ws) {
+          client.send(data);
+        }
+      });
+    });
+  });
+
+  event.sender.send("k8s-rsh-pod-success", { port });
+
+  console.log("main: sent k8s-rsh-pod-success event.");
+});
+
+ipcMain.on("k8s-close-socket", (event, data) => {
+  console.log("main: received k8s-close-socket event.");
+
+  const { port } = data;
+
+  wss.close((e) => {
+    event.sender.send("k8s-close-socket-success", { error: e });
+  });
+  ptyProcess.kill();
+
+  console.log("main: sent k8s-close-socket-success event.");
 });

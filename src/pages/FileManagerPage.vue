@@ -1,6 +1,6 @@
 <template>
   <q-page class="flex">
-    <div class="q-pa-md" v-if="headers && pods">
+    <div class="q-pa-md window-height" v-if="headers && pods">
       <q-table
         fluid
         row-key="name"
@@ -28,6 +28,9 @@
             <q-td key="actions" :props="props">
               <q-btn @click="goToFileManager(props.row.name)" tag="a" link>
                 <q-icon name="folder" />
+              </q-btn>
+              <q-btn @click="goToRsh(props.row.name)" tag="a" link>
+                <q-icon name="terminal" />
               </q-btn>
             </q-td>
           </q-tr>
@@ -62,6 +65,13 @@ export default {
       appStore.setPod(pod);
       router.push({
         path: "/file-manager/list-directory",
+      });
+    }
+
+    function goToRsh(pod) {
+      appStore.setPod(pod);
+      router.push({
+        path: "/file-manager/container-rsh",
       });
     }
 
@@ -119,6 +129,7 @@ export default {
 
     return {
       goToFileManager,
+      goToRsh,
       getPods,
       appStore,
       namespace,
@@ -137,5 +148,9 @@ export default {
 <style>
 .q-card {
   width: 360px;
+}
+.q-pa-md {
+  width: 100%;
+  height: 100%;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <q-page class="flex">
-    <div class="q-pa-md" v-if="pod">
+    <div class="q-pa-md window-height" v-if="pod">
       <div
         class="row no-wrap items-center q-mt-md q-pa-sm bg-grey-3 rounded-borders"
       >
@@ -303,5 +303,9 @@ export default {
 <style>
 .q-card {
   width: 360px;
+}
+.q-pa-md {
+  width: 100%;
+  height: 100%;
 }
 </style>

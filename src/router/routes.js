@@ -12,6 +12,10 @@ const routes = [
         path: "/file-manager/list-directory",
         component: () => import("pages/FileManagerListDirectoryPage.vue"),
       },
+      {
+        path: "/file-manager/container-rsh",
+        component: () => import("src/pages/FileManagerContainerRshPage.vue"),
+      },
     ],
   },
   {

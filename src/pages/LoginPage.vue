@@ -82,14 +82,12 @@ export default {
   },
   async mounted() {
     const res = await window.k8s.server();
-    console.log(res);
     if (res.data.error === null) {
       this.k8sHost = res.data.stdout;
     }
   },
   methods: {
     async login() {
-      // console.log(this.k8sHost, this.email, this.password);
       const res = await window.k8s.login({
         k8sServer: this.k8sHost,
         email: this.email,
